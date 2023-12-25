@@ -19,7 +19,7 @@ class Board:
         x_pos, y_pos = mouse_pos
         x = (x_pos - self.left) // self.cell_size
         y = (y_pos - self.left) // self.cell_size
-        if 0 <= x < self.w - 1 and 0 <= y <= self.h - 1:
+        if 0 <= x < self.w and 0 <= y < self.h:
             return x, y
 
         return None
