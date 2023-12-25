@@ -19,7 +19,7 @@ class Board:
         x_pos, y_pos = mouse_pos
         x = (x_pos - self.left) // self.cell_size
         y = (y_pos - self.left) // self.cell_size
-        if 0 <= x < self.w and 0 <= y <= self.h:
+        if 0 <= x < self.w - 1 and 0 <= y <= self.h - 1:
             return x, y
 
         return None
@@ -46,7 +46,7 @@ class Life(Board):
                 elif self.board[y][x] == 1:
                     pygame.draw.rect(screen, pygame.Color((0, 190, 0)),
                                      (x * self.cell_size + self.left, y * self.cell_size + self.top,
-                                      self.cell_size, self.cell_size), )
+                                      self.cell_size, self.cell_size))
 
     def next_move(self):
         new_board = []
