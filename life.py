@@ -73,7 +73,6 @@ class Life(Board):
                     cells_around += 1
                 if i < self.h - 1 and j < self.w - 1 and self.board[i + 1][j + 1] == 1:
                     cells_around += 1
-                # print(cells_around, end=' ')
                 if self.board[i][j] == 1 and cells_around != 2 and cells_around != 3:
                     new_board[i][j] = 0
                 elif self.board[i][j] == 0 and cells_around == 3:
@@ -119,7 +118,6 @@ while run:
                 else:
                     FPS = gameFPS
         if event.type == pygame.MOUSEWHEEL:
-            print(event.precise_y)
             if event.precise_y > 0:
                 gameFPS += 1
                 gameFPS = min(100, gameFPS)
@@ -133,7 +131,6 @@ while run:
 
     screen.fill((0, 0, 0))
     if not stop:
-        # print(FPS)
         board.next_move()
     board.render(screen)
     clock.tick(FPS)
