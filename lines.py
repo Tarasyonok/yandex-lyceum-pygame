@@ -1,160 +1,133 @@
-from random import choice
-
 import pygame
-
-pygame.init()
 
 
 class Board:
-    def __init__(self, w, h):
-        self.w = w
-        self.h = h
-        self.board = [[0] * w for i in range(h)]
-        self.left = 10
-        self.right = 10
-        self.cell_size = 30
-        self.has_red = None
+    def __init__(self, width, height, mines):
+        self.mines = mines
+        self.width = width
+        self.height = height
+        self.board = [[0] * self.width for i in range(self.height)]
 
-    def set_view(self, left, top, cell_size):
-        self.left = left
-        self.top = top
-        self.cell_size = cell_size
+        self.need_get_teleport = False
 
-    def get_cell(self, mouse_pos):
-        x_pos, y_pos = mouse_pos
-        x = (x_pos - self.left) // self.cell_size
-        y = (y_pos - self.left) // self.cell_size
-        if 0 <= x < self.w and 0 <= y <= self.h - 1:
-            return x, y
+        self.left_start = 20
+        self.top_start = 20
+        self.cell_size = 50
 
+    def render(self, screen):
+        screen.fill((0, 0, 0))
+        for y in range(self.height):
+            for x in range(self.width):
+                if self.board[y][x] == 1:
+                    pygame.draw.circle(screen, pygame.Color((0, 0, 255)),
+                                       (self.cell_size * x + self.left_start + self.cell_size // 2,
+                                        self.cell_size * y + self.top_start + self.cell_size // 2),
+                                       self.cell_size // 2 - 2)
+                elif self.board[y][x] == 2:
+                    pygame.draw.circle(screen, pygame.Color((255, 0, 0)),
+                                       (self.cell_size * x + self.left_start + self.cell_size // 2,
+                                        self.cell_size * y + self.top_start + self.cell_size // 2),
+                                       self.cell_size // 2 - 2)
+
+                pygame.draw.rect(screen, pygame.Color((200, 200, 200)),
+                                 (self.cell_size * x + self.left_start, self.cell_size * y + self.top_start,
+                                  self.cell_size, self.cell_size), width=1)
+
+    def find_red(self):
+        for y in range(self.height):
+            for x in range(self.width):
+                if self.board[y][x] == 2:
+                    return (x, y)
         return None
 
-    def process_click(self, mouse_pos):
-        cell = self.get_cell(mouse_pos)
-        if cell:
-            y, x = cell
-            if self.board[x][y] == 0:
-                if self.has_red:
-                    self.b1 = False
-                    self.b2 = False
-                    self.b3 = False
-                    self.b4 = False
-                    if self.has_path(*self.has_red, x, y):
-                        self.board[x][y] = 1
-                        self.board[self.has_red[0]][self.has_red[1]] = 0
-                        self.has_red = None
-                    else:
-                        self.board[self.has_red[0]][self.has_red[1]] = 2
+    def on_click(self, cell):
+        x, y = cell
+        if not self.need_get_teleport:
+            if self.board[y][x] == 0:
+                if self.find_red() is None:
+                    self.board[y][x] = 1
                 else:
-                    self.board[x][y] = 1
-            elif self.board[x][y] == 1:
-                if self.has_red:
-                    self.board[self.has_red[0]][self.has_red[1]] = 1
-                self.has_red = [x, y]
-                self.board[x][y] = 2
-            elif self.board[x][y] == 2:
-                self.has_red = None
-                self.board[x][y] = 1
+                    self.need_get_teleport = True
+            elif self.board[y][x] == 1:
+                red_coords = self.find_red()
+                if red_coords is not None:
+                    self.board[red_coords[1]][red_coords[0]] = 1
+                self.board[y][x] = 2
+            elif self.board[y][x] == 2:
+                self.board[y][x] = 1
+
+    def get_cell(self, mouse_pos):
+        x = (mouse_pos[0] - self.left_start) // self.cell_size
+        y = (mouse_pos[1] - self.top_start) // self.cell_size
+        if x < 0 or y < 0 or x >= self.width or y >= self.height:
+            return None
+        return x, y
+
+    def check_click(self, mouse_cords):
+        cell = self.get_cell(mouse_cords)
+        if cell:
+            self.on_click(cell)
 
 
 class Lines(Board):
-    def render(self, screen):
-        for y in range(self.h):
-            for x in range(self.w):
-                if self.board[y][x] == 1:
-                    pygame.draw.circle(screen, pygame.Color((0, 0, 255)),
-                                       (x * self.cell_size + self.left + self.cell_size / 2,
-                                        y * self.cell_size + self.top + self.cell_size / 2), self.cell_size / 2)
-                elif self.board[y][x] == 2:
-                    pygame.draw.circle(screen, pygame.Color((255, 0, 0)),
-                                       (x * self.cell_size + self.left + self.cell_size / 2,
-                                        y * self.cell_size + self.top + self.cell_size / 2), self.cell_size / 2)
-
-                pygame.draw.rect(screen, pygame.Color((190, 190, 190)),
-                                 (x * self.cell_size + self.left, y * self.cell_size + self.top,
-                                  self.cell_size, self.cell_size), 1)
-
     def has_path(self, x1, y1, x2, y2):
-        # print(x1, y1, x2, y2)
-        if x1 == x2 and y1 == y2:
-            return True
-        else:
-            # if self.board[x1][y1] != 0:
-            #     return False
-            # self.board[x1][x2] = 3
-            self.board[x1][y1] = 3
+        opened = [(y1, x1)]
+        queue = [(y1, x1)]
+        can_move = False
+        if x1 != x2 or y1 != y2:
+            while queue:
+                cur_pos = queue.pop()
+                y, x = cur_pos
+                if y + 1 < self.height and (y + 1, x) not in opened and self.board[y + 1][x] != 1:
+                    queue.append((y + 1, x))
+                    opened.append((y + 1, x))
 
-            w1 = w2 = w3 = w4 = False
+                if y - 1 >= 0 and (y - 1, x) not in opened and self.board[y - 1][x] != 1:
+                    queue.append((y - 1, x))
+                    opened.append((y - 1, x))
 
-            if x1 - 1 < 0:
-                self.b1 = True
-            if not self.b1 and self.board[x1 - 1][y1] == 0:
-                w1 = self.has_path(x1 - 1, y1, x2, y2)
-            for i in range(self.h):
-                for j in range(self.w):
-                    if self.board[i][j] == 3:
-                        self.board[i][j] = 0
-            if x1 + 1 > self.w - 1:
-                self.b2 = True
-            if not self.b2 and self.board[x1 + 1][y1] == 0:
-                w2 = self.has_path(x1 + 1, y1, x2, y2)
-            for i in range(self.h):
-                for j in range(self.w):
-                    if self.board[i][j] == 3:
-                        self.board[i][j] = 0
-            if y1 - 1 < 0:
-                self.b3 = True
-            if not self.b3 and self.board[x1][y1 - 1] == 0:
-                w3 = self.has_path(x1, y1 - 1, x2, y2)
-            for i in range(self.h):
-                for j in range(self.w):
-                    if self.board[i][j] == 3:
-                        self.board[i][j] = 0
-            if y1 + 1 > self.h - 1:
-                self.b4 = True
-            if not self.b4 and self.board[x1][y1 + 1] == 0:
-                print(123)
-                w4 = self.has_path(x1, y1 + 1, x2, y2)
-            for i in range(self.h):
-                for j in range(self.w):
-                    if self.board[i][j] == 3:
-                        self.board[i][j] = 0
-            # if self.b1 and self.b2 and self.b3 and self.b3:
-            #     print(123)
-            #     return False
+                if x - 1 >= 0 and (y, x - 1) not in opened and self.board[y][x - 1] != 1:
+                    queue.append((y, x - 1))
+                    opened.append((y, x - 1))
 
-            return w1 or w2 or w3 or w4
-            # e = True
-            # if x1 > 0:
-            #     # e = False
-            # if x1 < self.w - 1:
-            # e = False
-            # w3 = self.has_path(x1, y1 - 1, x2, y2)
-            # w4 = self.has_path(x1, y1 + 1, x2, y2)
-            # if e:
-            #     return False
-            # return w1 or w2
-            # return w1 or w2 or w3 or w4
+                if x + 1 < self.width and (y, x + 1) not in opened and self.board[y][x + 1] != 1:
+                    queue.append((y, x + 1))
+                    opened.append((y, x + 1))
+
+                if (y2, x2) in opened:
+                    can_move = True
+                    break
+
+        return can_move
+
+    def teleport(self, x1, y1, x2, y2):
+        self.board[y2][x2] = 1
+        self.board[y1][x1] = 0
+        self.need_get_teleport = False
 
 
-size = 440, 440
-screen = pygame.display.set_mode(size)
-FPS = 60
-clock = pygame.time.Clock()
-
-board = Lines(10, 10)
-board.set_view(20, 20, 40)
+lines = Lines(10, 10, 50)
 run = True
+pygame.init()
+screen = pygame.display.set_mode((540, 540))
+screen.fill((0, 0, 0))
 while run:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            board.process_click(event.pos)
+            quit()
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            lines.check_click(event.pos)
+            if lines.need_get_teleport:
+                red_coords = lines.find_red()
+                mouse_coords = lines.get_cell(event.pos)
+                if mouse_coords is not None:
+                    res = lines.has_path(red_coords[0], red_coords[1], mouse_coords[0], mouse_coords[1])
+                    if res:
+                        lines.teleport(red_coords[0], red_coords[1], mouse_coords[0], mouse_coords[1])
+                    else:
+                        lines.board[red_coords[1]][red_coords[0]] = 1
+                        lines.need_get_teleport = False
 
-    screen.fill((0, 0, 0))
-    board.render(screen)
-    clock.tick(FPS)
+    lines.render(screen)
     pygame.display.flip()
-
-pygame.quit()
