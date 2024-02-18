@@ -55,24 +55,43 @@ class Life(Board):
         for i in range(self.h):
             for j in range(self.w):
                 cells_around = 0
-                if i > 0 and j > 0 and self.board[i - 1][j - 1] == 1:
+
+                if i == self.h - 1:
+                    i_p = 0
+                else:
+                    i_p = i + 1
+                if i == 0:
+                    i_m = self.h - 1
+                else:
+                    i_m = i - 1
+                if j == self.w - 1:
+                    j_p = 0
+                else:
+                    j_p = j + 1
+                if j == 0:
+                    j_m = self.w - 1
+                else:
+                    j_m = j - 1
+
+                if self.board[i_m][j_m] == 1:
                     cells_around += 1
-                if i > 0 and self.board[i - 1][j] == 1:
+                if self.board[i_m][j] == 1:
                     cells_around += 1
-                if i > 0 and j < self.w - 1 and self.board[i - 1][j + 1] == 1:
+                if self.board[i_m][j_p] == 1:
                     cells_around += 1
 
-                if j > 0 and self.board[i][j - 1] == 1:
+                if self.board[i][j_m] == 1:
                     cells_around += 1
-                if j < self.w - 1 and self.board[i][j + 1] == 1:
+                if self.board[i][j_p] == 1:
                     cells_around += 1
 
-                if i < self.h - 1 and j > 0 and self.board[i + 1][j - 1] == 1:
+                if self.board[i_p][j_m] == 1:
                     cells_around += 1
-                if i < self.h - 1 and self.board[i + 1][j] == 1:
+                if self.board[i_p][j] == 1:
                     cells_around += 1
-                if i < self.h - 1 and j < self.w - 1 and self.board[i + 1][j + 1] == 1:
+                if self.board[i_p][j_p] == 1:
                     cells_around += 1
+
                 if self.board[i][j] == 1 and cells_around != 2 and cells_around != 3:
                     new_board[i][j] = 0
                 elif self.board[i][j] == 0 and cells_around == 3:
